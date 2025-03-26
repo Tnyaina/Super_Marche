@@ -35,7 +35,6 @@ CREATE TABLE Ligne_Achat (
     id_achat INT,
     id_produit INT,
     quantite INT NOT NULL,
-    prix_unitaire DECIMAL(10, 2) NOT NULL,
     FOREIGN KEY (id_achat) REFERENCES Achat(id),
     FOREIGN KEY (id_produit) REFERENCES Produit(id)
 );
