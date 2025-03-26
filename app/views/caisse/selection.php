@@ -6,7 +6,7 @@
                 <h4 class="text-center mb-0">Sélection de la Caisse</h4>
             </div>
             <div class="card-body">
-                <form action="<?php echo BASE_URL; ?>/select-caisse" method="POST">
+                <form action="<?php echo BASE_URL; ?>/achat/form" method="GET">
                     <div class="form-group">
                         <label for="caisse_selectionnee">Choisissez votre caisse :</label>
                         <select class="form-control" id="caisse_selectionnee" name="caisse_id" required>

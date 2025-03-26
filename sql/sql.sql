@@ -39,13 +39,6 @@ CREATE TABLE Ligne_Achat (
     FOREIGN KEY (id_produit) REFERENCES Produit(id)
 );
 
-CREATE TABLE AchatTemporaire (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    id_produit INT,
-    quantite INT NOT NULL,
-    id_caisse INT
-);
-
 -- Insert Sample Products (5 products as specified)
 INSERT INTO Produit (designation, prix, quantite_stock, code_produit) VALUES
 ('Pain de mie', 2.50, 100, 'PAIN001'),

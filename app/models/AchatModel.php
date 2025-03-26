@@ -1,5 +1,5 @@
 <?php
-// app/models/UtilisateurModel.php
+// app/models/AchatModel.php
 namespace app\models;
 
 use PDO;
@@ -13,124 +13,175 @@ class AchatModel
     {
         $this->db = $database;
     }
+
+    /**
+     * Get all products
+     */
     public function getAllProduit()
     {
         $sql = "SELECT * FROM Produit";
         $stmt = $this->db->prepare($sql);
         $stmt->execute();
-        $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        return $result;
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
-    public function insertionTemporaire($idProduit, $quantite, $idCaisse){
-        $sql = "INSERT INTO AchatTemporaire (id_produit, quantite, id_caisse) VALUES (:idProduit, :quantite, :idCaisse)";
-        $stmt = $this->db->prepare($sql);
-        $stmt->bindParam(':idProduit', $idProduit, PDO::PARAM_INT);
-        $stmt->bindParam(':quantite', $quantite, PDO::PARAM_INT);
-        $stmt->bindParam(':idCaisse', $idCaisse, PDO::PARAM_INT);
 
-        try {
-            $stmt->execute();
-            return true;
-        } catch (Exception $e) {
-            return false;
-        }
+    /**
+     * Insert a new purchase
+     */
+    public function insererAchat($idCaisse, $purchases)
+{
+    if (empty($purchases)) {
+        error_log("insererAchat: No purchases provided");
+        return false;
     }
-    public function deleteTemporaire(){
-        $sql = 'TRUNCATE TABLE AchatTemporaire';
-        $stmt = $this->db->prepare($sql);
-        $stmt->execute();
-        return true;
-    }
-    public function deleteTemporaireByProduit($idProduit){
-        $sql = 'DELETE FROM AchatTemporaire where id_produit = :idProduit';
-        $stmt = $this->db->prepare($sql);
-        $stmt->bindParam(':idProduit', $idProduit, PDO::PARAM_INT);
-        try {
-            $stmt->execute();
-            return true;
-        } catch (Exception $e) {
-            return false;
-        }
-    }
-    public function insererAchat(){
-        $sql = 'SELECT * FROM AchatTemporaire';
-        $stmt = $this->db->prepare($sql);
-        //recuperer les AchatTemporaires
-        $stmt->execute();
-        $achatsTemporaires = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-        // If no temporary purchases, return false
-        if (empty($achatsTemporaires)) {
-            return false;
+    // Validate id_caisse
+    $sqlCaisseCheck = "SELECT id FROM Caisse WHERE id = ?";
+    $stmtCaisseCheck = $this->db->prepare($sqlCaisseCheck);
+    $stmtCaisseCheck->execute([$idCaisse]);
+    if (!$stmtCaisseCheck->fetch(PDO::FETCH_ASSOC)) {
+        error_log("insererAchat: Caisse not found - ID: " . $idCaisse);
+        throw new Exception("Caisse not found with ID: " . $idCaisse);
+    }
+
+    $montantTotal = 0;
+    foreach ($purchases as $achat) {
+        $sqlPrix = "SELECT prix FROM Produit WHERE id = ?";
+        $stmtPrix = $this->db->prepare($sqlPrix);
+        $stmtPrix->execute([$achat['id_produit']]);
+        $produit = $stmtPrix->fetch(PDO::FETCH_ASSOC);
+
+        if (!$produit) {
+            error_log("insererAchat: Product not found - ID: " . $achat['id_produit']);
+            throw new Exception("Product not found with ID: " . $achat['id_produit']);
         }
 
-        // Get the caisse ID from the first temporary purchase
-        $idCaisse = $achatsTemporaires[0]['id_caisse'];
+        $montantTotal += $produit['prix'] * $achat['quantite'];
+    }
 
-        // Calculate total amount
-        $montantTotal = 0;
-        foreach ($achatsTemporaires as $achat) {
-            // Get product price
-            $sqlPrix = "SELECT prix FROM Produit WHERE id = :idProduit";
-            $stmtPrix = $this->db->prepare($sqlPrix);
-            $stmtPrix->bindParam(':idProduit', $achat['id_produit'], PDO::PARAM_INT);
-            $stmtPrix->execute();
-            $produit = $stmtPrix->fetch(PDO::FETCH_ASSOC);
-            
-            $montantTotal += $produit['prix'] * $achat['quantite'];
-        }
+    $this->db->beginTransaction();
 
-        // Begin transaction
-        $this->db->beginTransaction();
+    try {
+        $sqlAchat = "INSERT INTO Achat (id_caisse, montant_total) VALUES (?, ?)";
+        $stmtAchat = $this->db->prepare($sqlAchat);
+        $stmtAchat->execute([$idCaisse, $montantTotal]);
 
-        try {
-            // Insert into Achat table
-            $sqlAchat = "INSERT INTO Achat (id_caisse, montant_total) VALUES (:idCaisse, :montantTotal)";
-            $stmtAchat = $this->db->prepare($sqlAchat);
-            $stmtAchat->bindParam(':idCaisse', $idCaisse, PDO::PARAM_INT);
-            $stmtAchat->bindParam(':montantTotal', $montantTotal, PDO::PARAM_STR);
-            $stmtAchat->execute();
-            
-            // Get the new Achat ID
-            $idAchat = $this->db->lastInsertId();
-            
-            // Insert each product into Ligne_Achat and update stock
-            foreach ($achatsTemporaires as $achat) {
-                // Insert into Ligne_Achat
-                $sqlLigne = "INSERT INTO Ligne_Achat (id_achat, id_produit, quantite) VALUES (:idAchat, :idProduit, :quantite)";
-                $stmtLigne = $this->db->prepare($sqlLigne);
-                $stmtLigne->bindParam(':idAchat', $idAchat, PDO::PARAM_INT);
-                $stmtLigne->bindParam(':idProduit', $achat['id_produit'], PDO::PARAM_INT);
-                $stmtLigne->bindParam(':quantite', $achat['quantite'], PDO::PARAM_INT);
-                $stmtLigne->execute();
-                
-                // Update product stock
-                $sqlStock = "UPDATE Produit SET quantite_stock = quantite_stock - :quantite WHERE id = :idProduit";
-                $stmtStock = $this->db->prepare($sqlStock);
-                $stmtStock->bindParam(':quantite', $achat['quantite'], PDO::PARAM_INT);
-                $stmtStock->bindParam(':idProduit', $achat['id_produit'], PDO::PARAM_INT);
-                $stmtStock->execute();
+        $idAchat = $this->db->lastInsertId();
+
+        foreach ($purchases as $achat) {
+            $sqlStockCheck = "SELECT quantite_stock FROM Produit WHERE id = ?";
+            $stmtStockCheck = $this->db->prepare($sqlStockCheck);
+            $stmtStockCheck->execute([$achat['id_produit']]);
+            $stock = $stmtStockCheck->fetch(PDO::FETCH_ASSOC)['quantite_stock'];
+
+            if ($stock < $achat['quantite']) {
+                $this->db->rollBack();
+                error_log("insererAchat: Insufficient stock for product ID: " . $achat['id_produit']);
+                throw new Exception("Insufficient stock for product ID: " . $achat['id_produit']);
             }
-            
-            // Commit transaction
-            $this->db->commit();
-            
-            // Clear temporary purchases
-            $this->deleteTemporaire();
-            
-            return $idAchat;
-            
+
+            $sqlLigne = "INSERT INTO Ligne_Achat (id_achat, id_produit, quantite) VALUES (?, ?, ?)";
+            $stmtLigne = $this->db->prepare($sqlLigne);
+            $stmtLigne->execute([$idAchat, $achat['id_produit'], $achat['quantite']]);
+
+            $sqlStock = "UPDATE Produit SET quantite_stock = quantite_stock - ? WHERE id = ?";
+            $stmtStock = $this->db->prepare($sqlStock);
+            $stmtStock->execute([$achat['quantite'], $achat['id_produit']]);
+        }
+
+        $this->db->commit();
+        error_log("insererAchat: Transaction committed, ID: $idAchat");
+        return $idAchat;
+
+    } catch (Exception $e) {
+        $this->db->rollBack();
+        error_log("insererAchat error: " . $e->getMessage() . "\nStack trace: " . $e->getTraceAsString());
+        return false;
+    }
+}
+
+    /**
+     * Get total sales amount
+     */
+    public function getTotalSales()
+    {
+        try {
+            $sql = "SELECT SUM(montant_total) as total FROM Achat";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute();
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+            return $result['total'] ?? 0;
         } catch (Exception $e) {
-            // Rollback in case of error
-            $this->db->rollBack();
-            return false;
+            error_log("getTotalSales error: " . $e->getMessage());
+            return 0;
         }
     }
-    public function getAllTemporaire(){
-        $sql = 'SELECT * FROM AchatTemporaire JOIN Produit ON AchatTemporaire.id_produit = Produit.id';
-        $stmt = $this->db->prepare($sql);
-        $stmt->execute();
-        $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        return $result;
+
+    /**
+     * Get sales by product
+     */
+    public function getSalesByProduct()
+    {
+        try {
+            $sql = "
+                SELECT 
+                    p.designation,
+                    SUM(la.quantite) as quantite_totale,
+                    SUM(la.quantite * p.prix) as montant_total
+                FROM Ligne_Achat la
+                JOIN Produit p ON la.id_produit = p.id
+                GROUP BY p.id, p.designation";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute();
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (Exception $e) {
+            error_log("getSalesByProduct error: " . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Get sales by day
+     */
+    public function getSalesByDay()
+    {
+        try {
+            $sql = "
+                SELECT 
+                    DATE(date_achat) as jour,
+                    SUM(montant_total) as montant_total
+                FROM Achat
+                GROUP BY DATE(date_achat)
+                ORDER BY jour DESC";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute();
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (Exception $e) {
+            error_log("getSalesByDay error: " . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Get purchases by caisse
+     */
+    public function getPurchasesByCaisse($idCaisse)
+    {
+        try {
+            $sql = "
+                SELECT a.*, COUNT(la.id) as nombre_articles 
+                FROM Achat a 
+                LEFT JOIN Ligne_Achat la ON a.id = la.id_achat 
+                WHERE a.id_caisse = :idCaisse 
+                GROUP BY a.id
+                ORDER BY a.date_achat DESC";
+            $stmt = $this->db->prepare($sql);
+            $stmt->bindParam(':idCaisse', $idCaisse, PDO::PARAM_INT);
+            $stmt->execute();
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (Exception $e) {
+            error_log("getPurchasesByCaisse error: " . $e->getMessage());
+            return [];
+        }
     }
 }

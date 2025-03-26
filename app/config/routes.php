@@ -19,3 +19,14 @@ Flight::route('GET /select-caisse', function() {
     $controller = new CaisseController();
     $controller->index();
 });
+// Flight::route('GET /achat', ['app\controllers\AchatController', 'afficherListe']);
+Flight::route('GET /achat', function() {
+    $controller = new AchatController();
+    $controller->afficherListe();
+});
+// Flight::route('POST /achat/finaliser', ['app\controllers\AchatController', 'finaliserAchat']);
+Flight::route('POST /achat/finaliser', function() {
+    $controller = new AchatController();
+    $controller->finaliserAchat();
+});
+// Flight::route('GET /achat/statistiques', ['app\controllers\AchatController', 'getStatistiques']);
