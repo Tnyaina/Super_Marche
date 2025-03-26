@@ -25,12 +25,8 @@
             <?php endif; ?>
             <form method="POST" action="<?php echo BASE_URL; ?>/login">
                 <div class="form-group">
-                    <label for="nom_utilisateur">Nom d'utilisateur</label>
+                    <label for="nom_utilisateur">Nom du client</label>
                     <input type="text" class="form-control" id="nom_utilisateur" name="nom_utilisateur" required>
-                </div>
-                <div class="form-group">
-                    <label for="mot_de_passe">Mot de passe</label>
-                    <input type="password" class="form-control" id="mot_de_passe" name="mot_de_passe" required>
                 </div>
                 <button type="submit" class="btn btn-primary btn-block">Se connecter</button>
             </form>

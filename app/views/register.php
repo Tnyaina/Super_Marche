@@ -34,27 +34,8 @@
             <?php endif; ?>
             <form method="POST" action="<?php echo BASE_URL; ?>/register">
                 <div class="form-group">
-                    <label for="nom_utilisateur">Nom d'utilisateur</label>
+                    <label for="nom_utilisateur">Nom du client</label>
                     <input type="text" class="form-control" id="nom_utilisateur" name="nom_utilisateur" required>
-                </div>
-                <div class="form-group">
-                    <label for="mot_de_passe">Mot de passe</label>
-                    <input type="password" class="form-control" id="mot_de_passe" name="mot_de_passe" required>
-                </div>
-                <div class="form-group">
-                    <label for="confirm_mot_de_passe">Confirmer le mot de passe</label>
-                    <input type="password" class="form-control" id="confirm_mot_de_passe" name="confirm_mot_de_passe" required>
-                </div>
-                <div class="form-group">
-                    <label for="id_departement">Département</label>
-                    <select class="form-control" id="id_departement" name="id_departement" required>
-                        <option value="">Sélectionner un département</option>
-                        <?php foreach ($departements as $departement): ?>
-                            <option value="<?php echo $departement['id_departement']; ?>">
-                                <?php echo htmlspecialchars($departement['nom']); ?>
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
                 </div>
                 <button type="submit" class="btn btn-primary btn-block">S'inscrire</button>
             </form>

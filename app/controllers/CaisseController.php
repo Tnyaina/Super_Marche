@@ -12,6 +12,10 @@ class CaisseController {
         if (session_status() === PHP_SESSION_NONE) {
             session_start();
         }
+        if (!isset($_SESSION['client_id'])) {
+            $_SESSION['caisse_error'] = "Veuillez vous connecter d'abord";
+            Flight::redirect('/');
+        }
         $this->CaisseModel = new CaisseModel(Flight::db());
     }
 

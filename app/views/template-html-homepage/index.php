@@ -32,7 +32,7 @@
             </li>
           <?php endif; ?>
           <li class="nav-item">
-            <a class="nav-link" href="/logout">Déconnexion</a>
+            <a class="nav-link" href="<?php echo BASE_URL; ?>/logout">Déconnexion</a>
           </li>
         </ul>
       </div>

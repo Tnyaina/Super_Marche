@@ -51,3 +51,12 @@ INSERT INTO Produit (designation, prix, quantite_stock, code_produit) VALUES
 INSERT INTO Caisse (numero_caisse) VALUES 
 ('Caisse 1'),
 ('Caisse 2');
+
+CREATE TABLE Clients(
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nom VARCHAR(255) NOT NULL
+);
+
+ALTER TABLE Achat
+ADD COLUMN id_client INT,
+ADD FOREIGN KEY (id_client) REFERENCES Clients(id);
