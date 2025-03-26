@@ -1,119 +1,54 @@
--- Structure de la base de données en français pour la gestion financière d'entreprise
-CREATE DATABASE gestion_finance;
-USE gestion_finance;
+-- Create Database
+CREATE DATABASE supermarche;
 
--- Table des départements
-CREATE TABLE departements (
-    id_departement INT AUTO_INCREMENT PRIMARY KEY,
-    nom VARCHAR(100) NOT NULL,
-    description TEXT
+-- Use the database
+USE supermarche;
+
+-- Create Produit (Product) Table
+CREATE TABLE Produit (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    designation VARCHAR(255) NOT NULL,
+    prix DECIMAL(10, 2) NOT NULL,
+    quantite_stock INT NOT NULL DEFAULT 0,
+    code_produit VARCHAR(50) UNIQUE
 );
 
--- Table des utilisateurs
-CREATE TABLE utilisateurs (
-    id_utilisateur INT AUTO_INCREMENT PRIMARY KEY,
-    nom_utilisateur VARCHAR(50) NOT NULL UNIQUE,
-    mot_de_passe VARCHAR(255) NOT NULL,
-    id_departement INT NULL,
-    role ENUM('admin', 'utilisateur_departement') NOT NULL DEFAULT 'utilisateur_departement',
-    FOREIGN KEY (id_departement) REFERENCES departements(id_departement)
+-- Create Caisse (Cash Register) Table
+CREATE TABLE Caisse (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    numero_caisse VARCHAR(10) UNIQUE NOT NULL,
+    statut ENUM('active', 'fermee') DEFAULT 'active'
 );
 
--- Table des catégories 
-CREATE TABLE categories (
-    id_categorie INT AUTO_INCREMENT PRIMARY KEY,
-    nom VARCHAR(100) NOT NULL,
-    type ENUM('gain', 'depense') NOT NULL
+-- Create Achat (Purchase) Table
+CREATE TABLE Achat (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    id_caisse INT,
+    date_achat DATETIME DEFAULT CURRENT_TIMESTAMP,
+    montant_total DECIMAL(10, 2) NOT NULL,
+    FOREIGN KEY (id_caisse) REFERENCES Caisse(id)
 );
 
--- Table des budgets prévisionnels
-CREATE TABLE budgets (
-    id_budget INT AUTO_INCREMENT PRIMARY KEY,
-    id_departement INT NOT NULL,
-    mois INT NOT NULL, -- 1-12
-    annee INT NOT NULL,
-    solde_depart DECIMAL(15, 2) NOT NULL,
-    solde_final DECIMAL(15, 2) NOT NULL,
-    statut ENUM('en_attente', 'approuve', 'rejete') DEFAULT 'en_attente',
-    FOREIGN KEY (id_departement) REFERENCES departements(id_departement),
-    UNIQUE (id_departement, mois, annee)
+-- Create Ligne_Achat (Purchase Line) Table
+CREATE TABLE Ligne_Achat (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    id_achat INT,
+    id_produit INT,
+    quantite INT NOT NULL,
+    prix_unitaire DECIMAL(10, 2) NOT NULL,
+    FOREIGN KEY (id_achat) REFERENCES Achat(id),
+    FOREIGN KEY (id_produit) REFERENCES Produit(id)
 );
 
--- Table des détails des budgets prévisionnels
-CREATE TABLE details_budget (
-    id_detail INT AUTO_INCREMENT PRIMARY KEY,
-    id_budget INT NOT NULL,
-    id_categorie INT NOT NULL,
-    montant DECIMAL(15, 2) NOT NULL,
-    description TEXT,
-    FOREIGN KEY (id_budget) REFERENCES budgets(id_budget) ON DELETE CASCADE,
-    FOREIGN KEY (id_categorie) REFERENCES categories(id_categorie)
-);
+-- Insert Sample Products (5 products as specified)
+INSERT INTO Produit (designation, prix, quantite_stock, code_produit) VALUES
+('Pain de mie', 2.50, 100, 'PAIN001'),
+('Lait', 1.20, 50, 'LAIT001'),
+('Chocolat', 3.00, 75, 'CHOC001'),
+('Pommes', 2.00, 200, 'POMME001'),
+('Eau minerale', 1.50, 150, 'EAU001');
 
--- Table des transactions réalisées
-CREATE TABLE transactions (
-    id_transaction INT AUTO_INCREMENT PRIMARY KEY,
-    id_departement INT NOT NULL,
-    mois INT NOT NULL, -- 1-12
-    annee INT NOT NULL,
-    id_categorie INT NOT NULL,
-    montant DECIMAL(15, 2) NOT NULL,
-    description TEXT,
-    FOREIGN KEY (id_departement) REFERENCES departements(id_departement),
-    FOREIGN KEY (id_categorie) REFERENCES categories(id_categorie)
-);
-
--- Table pour les exports
-CREATE TABLE exports (
-    id_export INT AUTO_INCREMENT PRIMARY KEY,
-    id_utilisateur INT NOT NULL,
-    nom_fichier VARCHAR(255) NOT NULL,
-    type_fichier ENUM('pdf', 'excel', 'csv') NOT NULL,
-    date_creation TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (id_utilisateur) REFERENCES utilisateurs(id_utilisateur)
-);
-
--- Table pour la situation globale de l'entreprise par mois/année
-CREATE TABLE situation_globale (
-    mois INT NOT NULL,
-    annee INT NOT NULL,
-    solde_depart_previsionnel DECIMAL(15, 2) NOT NULL,
-    gains_previsionnels DECIMAL(15, 2) NOT NULL DEFAULT 0,
-    depenses_previsionnelles DECIMAL(15, 2) NOT NULL DEFAULT 0,
-    solde_final_previsionnel DECIMAL(15, 2) NOT NULL,
-    solde_depart_realise DECIMAL(15, 2) NOT NULL,
-    gains_realises DECIMAL(15, 2) NOT NULL DEFAULT 0,
-    depenses_realisees DECIMAL(15, 2) NOT NULL DEFAULT 0,
-    solde_final_realise DECIMAL(15, 2) NOT NULL,
-    solde_depart_mois_suivant DECIMAL(15, 2) NOT NULL DEFAULT 0,
-    UNIQUE (mois, annee)  
-);
-
--- Vue pour les écarts entre prévisions et réalisations (mise à jour pour utiliser la table)
-CREATE VIEW ecarts AS
-SELECT
-    sg.mois,
-    sg.annee,
-    sg.gains_realises - sg.gains_previsionnels AS ecart_gains,
-    sg.depenses_realisees - sg.depenses_previsionnelles AS ecart_depenses,
-    sg.solde_final_realise - sg.solde_final_previsionnel AS ecart_solde_final
-FROM
-    situation_globale sg;
-
--- Insertion de données initiales
-INSERT INTO departements (nom, description) VALUES
-('Comptabilite', 'Departement de gestion des finances'),
-('Ressources Humaines', 'Departement de gestion du personnel');
-
-INSERT INTO categories (nom, type) VALUES
-('Ventes de produits', 'gain'),
-('Prestations de services', 'gain'),
-('Revenus publicitaires', 'gain'),
-('Investissements reçus', 'gain');
-
--- Insérer des catégories de type 'depense'
-INSERT INTO categories (nom, type) VALUES
-('Salaires', 'depense'),
-('Loyer', 'depense'),
-('Équipements', 'depense'),
-('Maintenance', 'depense');
+-- Insert Sample Cash Registers (2 cash registers)
+INSERT INTO Caisse (numero_caisse) VALUES 
+('Caisse 1'),
+('Caisse 2');
